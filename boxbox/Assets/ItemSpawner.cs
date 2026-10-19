@@ -1,36 +1,110 @@
+
+using System.Collections;
 using UnityEngine;
 
 public class ItemSpawner : MonoBehaviour
 {
-    public GameObject itemPrefab; // ตัวแปรเก็บแม่แบบ Item
-    public float spawnInterval = 1.5f; // เวลาสุ่มเกิดทุกๆ กี่วินาที
-    public float xMin = -7f; // พิกัดสุ่มด้านซ้ายสุด
-    public float xMax = 7f;  // พิกัดสุ่มด้านขวาสุด
-    public float spawnY = 6f; // ความสูงด้านบนที่จะให้ของเกิด
-    public float destroyYBoundary = -6f; // พิกัด Y ด้านล่างที่ถ้าหลุดลงไปให้ลบทิ้ง
+    [Header("Ball Prefabs")]
+    public GameObject whiteBallPrefab;
+    public GameObject pinkBallPrefab;
+    public GameObject greenBallPrefab;
+    public GameObject redBallPrefab;
+
+    [Header("Spawn Settings")]
+    public float spawnInterval = 1.5f;
+    public float xMin = -7f;
+    public float xMax = 7f;
+    public float spawnY = 6f;
+    public float destroyYBoundary = -6f;
+
+    [Header("Level Spawn Settings")]
+    public float level2SpawnInterval = 1.0f;
+    public float level3SpawnInterval = 0.7f;
 
     void Start()
     {
-        // สั่งให้ทำงานฟังก์ชัน SpawnItem ซ้ำๆ ตามเวลาที่กำหนด
-        InvokeRepeating(nameof(SpawnItem), 0.5f, spawnInterval);
+        StartCoroutine(SpawnLoop());
+    }
+
+    IEnumerator SpawnLoop()
+    {
+        while (true)
+        {
+            SpawnItem();
+            yield return new WaitForSeconds(GetSpawnInterval());
+        }
+    }
+
+    float GetSpawnInterval()
+    {
+        int level = LevelManager.Instance != null
+            ? LevelManager.Instance.currentLevel
+            : 1;
+
+        switch (level)
+        {
+            case 2:
+                return level2SpawnInterval;
+            case 3:
+                return level3SpawnInterval;
+            default:
+                return spawnInterval;
+        }
     }
 
     void SpawnItem()
     {
-        // สุ่มตำแหน่ง X
+        GameObject[] balls =
+        {
+            whiteBallPrefab,
+            pinkBallPrefab,
+            greenBallPrefab,
+            redBallPrefab
+        };
+
+        // สุ่มเฉพาะ Prefab ที่กำหนดไว้แล้ว
+        System.Collections.Generic.List<GameObject> availableBalls =
+            new System.Collections.Generic.List<GameObject>();
+
+        foreach (GameObject ball in balls)
+        {
+            if (ball != null)
+                availableBalls.Add(ball);
+        }
+
+        if (availableBalls.Count == 0)
+        {
+            Debug.LogWarning("กรุณากำหนด Ball Prefabs ใน Inspector");
+            return;
+        }
+
+        GameObject selectedBall =
+            availableBalls[Random.Range(0, availableBalls.Count)];
+
         float randomX = Random.Range(xMin, xMax);
-        Vector3 spawnPosition = new Vector3(randomX, spawnY, 0f);
 
-        // เสก Item ออกมาที่ตำแหน่งสุ่ม
-        GameObject newItem = Instantiate(itemPrefab, spawnPosition, Quaternion.identity);
+        Vector3 spawnPosition =
+            new Vector3(randomX, spawnY, 0f);
 
-        // ใส่สคริปต์จิ๋วแบบ Inline เพื่อเช็กและลบวัตถุเมื่อตกลงไปต่ำกว่าขอบล่าง (destroyYBoundary)
-        AutoDestroyWhenOutOfBounds autoDestroy = newItem.AddComponent<AutoDestroyWhenOutOfBounds>();
+        GameObject newItem = Instantiate(
+            selectedBall,
+            spawnPosition,
+            Quaternion.identity
+        );
+
+        AutoDestroyWhenOutOfBounds autoDestroy =
+            newItem.GetComponent<AutoDestroyWhenOutOfBounds>();
+
+        if (autoDestroy == null)
+        {
+            autoDestroy =
+                newItem.AddComponent<AutoDestroyWhenOutOfBounds>();
+        }
+
         autoDestroy.bottomY = destroyYBoundary;
     }
 }
 
-// คลาสเสริมสำหรับคอยตรวจเช็กตำแหน่ง และลบตัวเองเมื่อหลุดขอบล่าง
 public class AutoDestroyWhenOutOfBounds : MonoBehaviour
 {
     public float bottomY = -6f;
@@ -39,9 +113,13 @@ public class AutoDestroyWhenOutOfBounds : MonoBehaviour
     {
         if (transform.position.y < bottomY)
         {
-            // ไอเทมหลุดขอบล่างโดยไม่โดน Player = พลาด รีเซ็ตคอมโบ
-            var collector = FindFirstObjectByType<ItemCollector>();
-            if (collector != null) collector.ResetCombo();
+            ItemCollector collector =
+            FindAnyObjectByType<ItemCollector>();
+
+            if (collector != null)
+            {
+                collector.ResetCombo();
+            }
 
             Destroy(gameObject);
         }

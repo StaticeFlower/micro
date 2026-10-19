@@ -35,7 +35,7 @@ public class SensorBehavior : WebSocketBehavior
 
 public class WsServer : MonoBehaviour
 {
-    public int port = 8080;
+    public int port = 8080;          // ใหม่: พอร์ตที่รอรับการเชื่อมต่อจาก ESP32
     public float speed = 5f;          // ใหม่: ความเร็วเดิน ปรับได้ใน Inspector
 
     WebSocketServer wss;

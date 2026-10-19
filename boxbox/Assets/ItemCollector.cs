@@ -1,71 +1,125 @@
+
 using UnityEngine;
 
 public class ItemCollector : MonoBehaviour
 {
     public string itemTag = "Item";
-    public int count = 0;             // จำนวนไอเทมทั้งหมดที่เก็บได้
-    public int combo = 0;             // จำนวนครั้งที่เก็บติดต่อกัน
+    public int count = 0;
+    public int combo = 0;
 
-    public float comboTimeout = 3f;   // ถ้าไม่เก็บภายในกี่วินาที คอมโบจะรีเซ็ต
-    public float praiseDuration = 1.5f; // แสดงคำชมนานกี่วินาที
+    [Header("Ball Tags")]
+    public string whiteBallTag = "WhiteBall";
+    public string pinkBallTag = "PinkBall";
+    public string greenBallTag = "GreenBall";
+    public string redBallTag = "RedBall";
 
-    float lastCollectTime;
+    public float praiseDuration = 1.5f;
+
     string praiseText = "";
     float praiseUntil = 0f;
 
     void OnTriggerEnter2D(Collider2D other)
     {
-        if (!other.CompareTag(itemTag)) return;
+        int comboChange;
 
-        // ถ้าเก็บช้าเกินเวลา คอมโบเริ่มนับใหม่
-        if (combo > 0 && Time.time - lastCollectTime > comboTimeout)
-            combo = 0;
+        if (other.CompareTag(whiteBallTag))
+        {
+            comboChange = 1;
+        }
+        else if (other.CompareTag(pinkBallTag))
+        {
+            comboChange = -1;
+        }
+        else if (other.CompareTag(greenBallTag))
+        {
+            comboChange = -3;
+        }
+        else if (other.CompareTag(redBallTag))
+        {
+            comboChange = -5;
+        }
+        else if (other.CompareTag(itemTag))
+        {
+            // รองรับบอลเดิมที่ใช้ Tag = Item
+            comboChange = 1;
+        }
+        else
+        {
+            return;
+        }
 
-        combo++;
+        // Combo ต่ำสุดคือ 0
+        combo = Mathf.Max(0, combo + comboChange);
         count++;
-        lastCollectTime = Time.time;
+
+        if (LevelManager.Instance != null)
+            LevelManager.Instance.UpdateLevel(combo);
 
         string praise = GetPraise(combo);
+
         if (praise != "")
         {
             praiseText = praise;
             praiseUntil = Time.time + praiseDuration;
         }
 
-        Debug.Log($"เก็บไอเทม รวม {count} ชิ้น | คอมโบ x{combo} {praise}");
+        Debug.Log(
+            $"เก็บบอล {count} ลูก | " +
+            $"เปลี่ยน Combo {comboChange:+#;-#;0} | " +
+            $"Combo ปัจจุบัน = {combo}"
+        );
+
         Destroy(other.gameObject);
     }
 
     string GetPraise(int c)
     {
-        if (c >= 5) return "Perfect!";   // 5 ครั้งขึ้นไป ดีที่สุด
-        if (c == 4) return "Excellent!"; // 4 ครั้ง ดีมาก
-        if (c == 3) return "Great!";     // 3 ครั้ง ดี
-        if (c == 2) return "OK";         // 2 ครั้ง ok
-        return "";                       // ครั้งเดียว ไม่มีคำชม
+        if (c >= 5) return "Perfect!";
+        if (c == 4) return "Excellent!";
+        if (c == 3) return "Great!";
+        if (c == 2) return "OK!";
+        return "";
     }
 
     public void ResetCombo()
-{
-    if (combo > 0) Debug.Log("พลาด! คอมโบรีเซ็ต");
-    combo = 0;
-}
-
-    void Update()
     {
-        // คอมโบหมดเวลา ให้รีเซ็ต
-        if (combo > 0 && Time.time - lastCollectTime > comboTimeout)
-            combo = 0;
+        combo = 0;
+
+        if (LevelManager.Instance != null)
+            LevelManager.Instance.ResetLevel();
+
+        Debug.Log("พลาด! Combo กลับเป็น 0 และ Level กลับเป็น 1");
     }
 
     void OnGUI()
     {
-        var small = new GUIStyle(GUI.skin.label) { fontSize = 28 };
-        GUI.Label(new Rect(10, 10, 300, 40), $"Items: {count}", small);
-        if (combo >= 2)
-            GUI.Label(new Rect(10, 50, 300, 40), $"Combo x{combo}", small);
+        var small = new GUIStyle(GUI.skin.label)
+        {
+            fontSize = 28
+        };
 
-        // คำชมตรงกลางจอ
+        GUI.Label(
+            new Rect(10, 10, 350, 40),
+            $"Items: {count}",
+            small
+        );
+
+        GUI.Label(
+            new Rect(10, 50, 350, 40),
+            $"Combo x{combo}",
+            small
+        );
+
+        int level = LevelManager.Instance != null
+            ? LevelManager.Instance.currentLevel
+            : 1;
+
+        GUI.Label(
+            new Rect(10, 90, 350, 40),
+            $"Level: {level}",
+            small
+        );
+
         if (Time.time < praiseUntil)
         {
             var big = new GUIStyle(GUI.skin.label)
@@ -74,7 +128,13 @@ public class ItemCollector : MonoBehaviour
                 alignment = TextAnchor.MiddleCenter,
                 fontStyle = FontStyle.Bold
             };
-            GUI.Label(new Rect(0, Screen.height * 0.25f, Screen.width, 100), praiseText, big);
+
+            GUI.Label(
+                new Rect(0, Screen.height * 0.25f,
+                    Screen.width, 100),
+                praiseText,
+                big
+            );
         }
     }
 }

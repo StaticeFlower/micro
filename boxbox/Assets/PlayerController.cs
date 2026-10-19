@@ -1,5 +1,6 @@
+
 using UnityEngine;
-using UnityEngine.InputSystem; // 1. ดึงระบบ Input System ใหม่มาใช้งาน
+using UnityEngine.InputSystem;
 
 public class PlayerController : MonoBehaviour
 {
@@ -10,33 +11,45 @@ public class PlayerController : MonoBehaviour
     {
         float moveInput = 0f;
 
-        // 2. เช็กการกดปุ่ม A / D หรือ ลูกศรซ้าย / ขวา
+        // รับปุ่ม A / D และลูกศรซ้าย / ขวา
         if (Keyboard.current != null)
         {
-            if (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrowKey.isPressed)
+            if (Keyboard.current.aKey.isPressed ||
+                Keyboard.current.leftArrowKey.isPressed)
             {
                 moveInput = -1f;
             }
-            else if (Keyboard.current.dKey.isPressed || Keyboard.current.rightArrowKey.isPressed)
+            else if (Keyboard.current.dKey.isPressed ||
+                     Keyboard.current.rightArrowKey.isPressed)
             {
                 moveInput = 1f;
             }
         }
 
-        // เคลื่อนที่ตัวละคร
-        transform.Translate(Vector3.right * moveInput * moveSpeed * Time.deltaTime);
+        // ใช้ความเร็วตาม Level
+        float currentSpeed = moveSpeed;
 
-        // จำกัดพื้นที่ให้อยู่ในขอบเขตหน้าจอ
-        float clampedX = Mathf.Clamp(transform.position.x, -xLimit, xLimit);
-        transform.position = new Vector3(clampedX, transform.position.y, transform.position.z);
-    }
-
-    private void OnCollisionEnter2D(Collision2D collision)
-    {
-        if (collision.gameObject.CompareTag("Item"))
+        if (LevelManager.Instance != null)
         {
-            Debug.Log("เก็บของได้แล้ว!");
-            Destroy(collision.gameObject);
+            currentSpeed = LevelManager.Instance.CurrentSpeed;
         }
+
+        // เคลื่อนที่ฐาน
+        transform.Translate(
+            Vector3.right * moveInput * currentSpeed * Time.deltaTime
+        );
+
+        // จำกัดพื้นที่การเคลื่อนที่
+        float clampedX = Mathf.Clamp(
+            transform.position.x,
+            -xLimit,
+            xLimit
+        );
+
+        transform.position = new Vector3(
+            clampedX,
+            transform.position.y,
+            transform.position.z
+        );
     }
 }
