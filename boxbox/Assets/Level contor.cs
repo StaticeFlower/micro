@@ -1,4 +1,3 @@
-
 using UnityEngine;
 
 public class LevelManager : MonoBehaviour
@@ -28,7 +27,7 @@ public class LevelManager : MonoBehaviour
         }
     }
 
-    void Awake()
+    private void Awake()
     {
         if (Instance != null && Instance != this)
         {
