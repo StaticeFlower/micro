@@ -10,6 +10,12 @@ public class ItemSpawner : MonoBehaviour
     public GameObject greenBallPrefab;
     public GameObject redBallPrefab;
     public GameObject pinkBallPrefab;
+    public GameObject item3Prefab;
+
+    [Header("New Item Prefabs")]
+    public GameObject item4Prefab; // +5 Combo
+    public GameObject item5Prefab; // +10 Combo
+    public GameObject item6Prefab; // -10 Combo
 
     [Header("Spawn Settings")]
     public float spawnInterval = 1.5f;
@@ -23,13 +29,20 @@ public class ItemSpawner : MonoBehaviour
     [Range(0, 100)] public int greenChance = 25;
     [Range(0, 100)] public int redChance = 15;
     [Range(0, 100)] public int pinkChance = 10;
+    [Range(0, 100)] public int item3Chance = 10;
+    [Range(0, 100)] public int item4Chance = 5;
+    [Range(0, 100)] public int item5Chance = 5;
+    [Range(0, 100)] public int item6Chance = 5;
+
+    private Dictionary<GameObject, float> horizontalSpeeds =
+        new Dictionary<GameObject, float>();
 
     private List<GameObject> activeItems = new List<GameObject>();
     private float timer = 0f;
 
     private void Update()
     {
-        // 1. จับเวลาสปอนบอล
+        // 1. Spawn ตามช่วงเวลาเดิม
         timer += Time.deltaTime;
 
         if (timer >= spawnInterval)
@@ -38,46 +51,53 @@ public class ItemSpawner : MonoBehaviour
             timer = 0f;
         }
 
-        // 2. ใช้ความเร็วจาก LevelManager
+        // 2. ใช้ความเร็วจาก LevelManager เหมือนเดิม
         float currentSpeed = LevelManager.Instance != null
             ? LevelManager.Instance.CurrentSpeed
             : 5f;
 
-        // 3. เคลื่อนที่บอลและตรวจสอบการตกหลุดจอ
+        // 3. เคลื่อนที่ไอเทม
         for (int i = activeItems.Count - 1; i >= 0; i--)
         {
             GameObject item = activeItems[i];
 
             if (item == null)
             {
+                horizontalSpeeds.Remove(item);
                 activeItems.RemoveAt(i);
                 continue;
             }
 
-            item.transform.Translate(
-                Vector3.down * currentSpeed * Time.deltaTime
+            float horizontalSpeed = 0f;
+
+            if (horizontalSpeeds.TryGetValue(item, out float savedSpeed))
+            {
+                horizontalSpeed = savedSpeed;
+            }
+
+            // ทุกไอเทมตกลงด้านล่าง
+            // ไอเทมปกติตกตรง ส่วน Item 3-6 ตกเฉียง
+            Vector3 movement = new Vector3(
+                horizontalSpeed,
+                -currentSpeed,
+                0f
             );
+
+            item.transform.Translate(movement * Time.deltaTime);
 
             if (item.transform.position.y <= destroyYBoundary)
             {
-                // ตรวจว่าเป็นบอลสีขาวจริงหรือไม่
-                // Item(Clone) = บอลขาว
-                // Item 1(Clone) = บอลเขียว
-                // Item 2(Clone) = บอลแดง
-                string ballName = item.name
-                    .Replace("(Clone)", "")
-                    .Trim();
+                string ballName = item.name.Replace("(Clone)", "").Trim();
 
                 if (ballName == "Item")
                 {
-                    // บอลขาวตกหลุดจอ: รีเซ็ต Combo เท่านั้น
                     if (ItemCollector.Instance != null)
                     {
                         ItemCollector.Instance.ResetCombo();
                     }
                 }
 
-                // บอลทุกสีที่ตกหลุดจอจะถูกลบ
+                horizontalSpeeds.Remove(item);
                 Destroy(item);
                 activeItems.RemoveAt(i);
             }
@@ -86,23 +106,14 @@ public class ItemSpawner : MonoBehaviour
 
     private void SpawnItem()
     {
+        // ใช้ระบบสุ่มไอเทมเดิม
         GameObject prefabToSpawn = GetRandomItemPrefab();
 
-        if (prefabToSpawn == null)
-        {
-            return;
-        }
+        if (prefabToSpawn == null) return;
 
-        // สุ่มตำแหน่ง X
         float randomX = Random.Range(xMin, xMax);
+        Vector3 spawnPosition = new Vector3(randomX, spawnY, 0f);
 
-        Vector3 spawnPosition = new Vector3(
-            randomX,
-            spawnY,
-            0f
-        );
-
-        // สร้างบอล
         GameObject newItem = Instantiate(
             prefabToSpawn,
             spawnPosition,
@@ -111,10 +122,28 @@ public class ItemSpawner : MonoBehaviour
 
         activeItems.Add(newItem);
 
-        // นับ Items เฉพาะบอลสีขาวที่ Spawn
-        string ballName = newItem.name
-            .Replace("(Clone)", "")
-            .Trim();
+        // กำหนดความเร็วแนวนอน
+        float horizontalSpeed = 0f;
+
+        if (IsSpecialItem(newItem))
+        {
+            // สุ่มซ้ายหรือขวาเท่านั้น ไม่มีแนวดิ่ง
+            int direction = Random.Range(0, 2);
+
+            if (direction == 0)
+            {
+                horizontalSpeed = -Random.Range(1.5f, 3.5f);
+            }
+            else
+            {
+                horizontalSpeed = Random.Range(1.5f, 3.5f);
+            }
+        }
+
+        horizontalSpeeds[newItem] = horizontalSpeed;
+
+        // นับ Items ตามเงื่อนไขเดิม
+        string ballName = newItem.name.Replace("(Clone)", "").Trim();
 
         if (ballName == "Item")
         {
@@ -125,50 +154,54 @@ public class ItemSpawner : MonoBehaviour
         }
     }
 
+   private bool IsSpecialItem(GameObject item)
+{
+    string ballName = item.name.Replace("(Clone)", "").Trim().ToLower();
+
+    return ballName == "item 3"
+        || ballName == "item 4"
+        || ballName == "item 5"
+        || ballName == "item 6";
+}
+
     private GameObject GetRandomItemPrefab()
     {
+        // ระบบสุ่มและน้ำหนักเดิมทั้งหมด
         int totalWeight =
-            whiteChance +
-            greenChance +
-            redChance +
-            pinkChance;
+            whiteChance + greenChance + redChance + pinkChance +
+            item3Chance + item4Chance + item5Chance + item6Chance;
 
-        if (totalWeight <= 0)
-        {
-            return whiteBallPrefab;
-        }
+        if (totalWeight <= 0) return whiteBallPrefab;
 
         int randomValue = Random.Range(0, totalWeight);
 
-        // บอลสีขาว
-        if (randomValue < whiteChance)
-        {
-            return whiteBallPrefab;
-        }
-
+        if (randomValue < whiteChance) return whiteBallPrefab;
         randomValue -= whiteChance;
 
-        // บอลสีเขียว
         if (randomValue < greenChance)
-        {
-            return greenBallPrefab != null
-                ? greenBallPrefab
-                : whiteBallPrefab;
-        }
-
+            return greenBallPrefab != null ? greenBallPrefab : whiteBallPrefab;
         randomValue -= greenChance;
 
-        // บอลสีแดง
         if (randomValue < redChance)
-        {
-            return redBallPrefab != null
-                ? redBallPrefab
-                : whiteBallPrefab;
-        }
+            return redBallPrefab != null ? redBallPrefab : whiteBallPrefab;
+        randomValue -= redChance;
 
-        // บอลสีชมพู
-        return pinkBallPrefab != null
-            ? pinkBallPrefab
-            : whiteBallPrefab;
+        if (randomValue < pinkChance)
+            return pinkBallPrefab != null ? pinkBallPrefab : whiteBallPrefab;
+        randomValue -= pinkChance;
+
+        if (randomValue < item3Chance)
+            return item3Prefab != null ? item3Prefab : whiteBallPrefab;
+        randomValue -= item3Chance;
+
+        if (randomValue < item4Chance)
+            return item4Prefab != null ? item4Prefab : whiteBallPrefab;
+        randomValue -= item4Chance;
+
+        if (randomValue < item5Chance)
+            return item5Prefab != null ? item5Prefab : whiteBallPrefab;
+        randomValue -= item5Chance;
+
+        return item6Prefab != null ? item6Prefab : whiteBallPrefab;
     }
 }

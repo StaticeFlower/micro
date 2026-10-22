@@ -1,4 +1,3 @@
-
 using UnityEngine;
 
 public class ItemCollector : MonoBehaviour
@@ -14,6 +13,12 @@ public class ItemCollector : MonoBehaviour
     public string pinkBallTag = "PinkBall";
     public string greenBallTag = "GreenBall";
     public string redBallTag = "RedBall";
+
+    [Header("New Ball Tags")]
+    public string Tram = "Tram"; // Item 3 (+3 Combo)
+    public string ohm = "ohm";   // Item 4 (+5 Combo)
+    public string dew = "dew";   // Item 5 (+10 Combo)
+    public string F = "F";       // Item 6 (-10 Combo)
 
     public float praiseDuration = 1.5f;
 
@@ -41,18 +46,37 @@ public class ItemCollector : MonoBehaviour
     {
         int comboChange;
 
-        // ตรวจชื่อก่อน เพราะทุกลูกอาจใช้ Tag "Item"
+        // ดึงชื่อวัตถุ ตัด (Clone) และช่องว่างออก
         string ballName = other.gameObject.name.Replace("(Clone)", "").Trim();
 
-        if (ballName == "Item 1")
+        // ตรวจเช็กชื่อ (ปรับให้เปลี่ยนเป็นตัวพิมพ์เล็กทั้งหมดเพื่อป้องกันปัญหาพิมพ์เล็ก/ใหญ่)
+        string lowerBallName = ballName.ToLower();
+
+        if (lowerBallName == "item 1")
         {
             comboChange = -2;
         }
-        else if (ballName == "Item 2")
+        else if (lowerBallName == "item 2")
         {
             comboChange = -5;
         }
-        else if (ballName == "Item")
+        else if (lowerBallName == "item 3" || other.CompareTag(Tram))
+        {
+            comboChange = 3;
+        }
+        else if (lowerBallName == "item 4" || other.CompareTag(ohm))
+        {
+            comboChange = 5;
+        }
+        else if (lowerBallName == "item 5" || other.CompareTag(dew))
+        {
+            comboChange = 10;
+        }
+        else if (lowerBallName == "item 6" || other.CompareTag(F))
+        {
+            comboChange = -10;
+        }
+        else if (lowerBallName == "item")
         {
             comboChange = 1;
         }
