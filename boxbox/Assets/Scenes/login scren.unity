@@ -872,6 +872,18 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+      - m_Target: {fileID: 2124605760}
+        m_TargetAssemblyTypeName: AccountSaver, Assembly-CSharp
+        m_MethodName: SaveAccountData
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1360015460
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1939,6 +1951,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2124605758}
   - component: {fileID: 2124605759}
+  - component: {fileID: 2124605760}
   m_Layer: 0
   m_Name: Login mancge
   m_TagString: Untagged
@@ -1973,6 +1986,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c9c76a3d68298634ab0f0cee10990ab4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LoginManager
+--- !u!114 &2124605760
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2124605757}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9f282a970768a8a40858ea8efe557263, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AccountSaver
+  usernameInput: {fileID: 2000306983}
+  passwordInput: {fileID: 1807786515}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

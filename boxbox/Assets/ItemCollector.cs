@@ -108,6 +108,11 @@ public class ItemCollector : MonoBehaviour
             LevelManager.Instance.UpdateLevel(combo);
         }
 
+        // ==========================================
+        // 🔹 ส่งค่า combo ไปเช็คและเซฟลง AccountSaver
+        // ==========================================
+        SaveMaxCombo();
+
         string praise = GetPraise(combo);
 
         if (!string.IsNullOrEmpty(praise))
@@ -136,6 +141,18 @@ public class ItemCollector : MonoBehaviour
         if (LevelManager.Instance != null)
         {
             LevelManager.Instance.ResetLevel();
+        }
+    }
+
+    // ==========================================
+    // 🔹 ฟังก์ชันเรียกสั่งบันทึก Max Combo
+    // ==========================================
+    public void SaveMaxCombo()
+    {
+        AccountSaver saver = FindFirstObjectByType<AccountSaver>(FindObjectsInactive.Exclude);
+        if (saver != null)
+        {
+            saver.SaveScore(combo); // ส่งค่า combo ล่าสุดไปเช็คกับ AccountSaver
         }
     }
 
