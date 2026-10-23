@@ -1,7 +1,7 @@
-
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro; // ใช้สำหรับ TextMeshPro (หากใช้ UI Text ปกติ ให้เปลี่ยนเป็น UnityEngine.UI)
 
 public class ItemSpawner : MonoBehaviour
 {
@@ -16,6 +16,7 @@ public class ItemSpawner : MonoBehaviour
     public GameObject item4Prefab; // +5 Combo
     public GameObject item5Prefab; // +10 Combo
     public GameObject item6Prefab; // -10 Combo
+    public GameObject item7Prefab; // -1 Missed (ลดค่าการพลาดลง 1)
 
     [Header("Spawn Settings")]
     public float spawnInterval = 1.5f;
@@ -23,6 +24,12 @@ public class ItemSpawner : MonoBehaviour
     public float xMin = -8f;
     public float xMax = 8f;
     public float destroyYBoundary = -6f;
+
+    [Header("Defeat Settings (ระบบแพ้)")]
+    public int maxMissedWhiteBalls = 5; // จำนวนครั้งที่พลาดได้
+    private int missedWhiteBallCount = 0; // ตัวนับที่พลาดไปแล้ว
+    private bool isGameOver = false; // สถานะจบเกม
+    public GameObject defeatUI; // ลาก UI / Text คำว่า Defeat มาใส่ตรงนี้ใน Inspector
 
     [Header("Spawn Probabilities (%)")]
     [Range(0, 100)] public int whiteChance = 50;
@@ -33,6 +40,7 @@ public class ItemSpawner : MonoBehaviour
     [Range(0, 100)] public int item4Chance = 5;
     [Range(0, 100)] public int item5Chance = 5;
     [Range(0, 100)] public int item6Chance = 5;
+    [Range(0, 100)] public int item7Chance = 5; // โอกาสเกิดของ item 7
 
     private Dictionary<GameObject, float> horizontalSpeeds =
         new Dictionary<GameObject, float>();
@@ -42,6 +50,9 @@ public class ItemSpawner : MonoBehaviour
 
     private void Update()
     {
+        // หากเกมจบแล้ว (แพ้) ให้หยุดการทำงานทั้งหมด
+        if (isGameOver) return;
+
         // 1. Spawn ตามช่วงเวลาเดิม
         timer += Time.deltaTime;
 
@@ -76,7 +87,7 @@ public class ItemSpawner : MonoBehaviour
             }
 
             // ทุกไอเทมตกลงด้านล่าง
-            // ไอเทมปกติตกตรง ส่วน Item 3-6 ตกเฉียง
+            // ไอเทมปกติตกตรง ส่วน Item 3-7 ตกเฉียง
             Vector3 movement = new Vector3(
                 horizontalSpeed,
                 -currentSpeed,
@@ -95,6 +106,9 @@ public class ItemSpawner : MonoBehaviour
                     {
                         ItemCollector.Instance.ResetCombo();
                     }
+
+                    // --- เพิ่มเงื่อนไขนับลูกบอลสีขาวที่ตกพื้น/พลาด ---
+                    RegisterMissedWhiteBall();
                 }
 
                 horizontalSpeeds.Remove(item);
@@ -102,6 +116,40 @@ public class ItemSpawner : MonoBehaviour
                 activeItems.RemoveAt(i);
             }
         }
+    }
+
+    private void RegisterMissedWhiteBall()
+    {
+        missedWhiteBallCount++;
+        Debug.Log($"Missed White Ball: {missedWhiteBallCount}/{maxMissedWhiteBalls}");
+
+        if (missedWhiteBallCount >= maxMissedWhiteBalls)
+        {
+            TriggerDefeat();
+        }
+    }
+
+    // ฟังก์ชันสั่งลดค่านับ Missed เมื่อเก็บ item 7 ได้
+    public void ReduceMissedCount()
+    {
+        if (missedWhiteBallCount > 0)
+        {
+            missedWhiteBallCount--;
+            Debug.Log($"Reduced Missed Count! Current Missed: {missedWhiteBallCount}/{maxMissedWhiteBalls}");
+        }
+    }
+
+    private void TriggerDefeat()
+    {
+        isGameOver = true;
+
+        // แสดงข้อความ Defeat
+        if (defeatUI != null)
+        {
+            defeatUI.SetActive(true);
+        }
+
+        Debug.Log("Game Over: Defeat!");
     }
 
     private void SpawnItem()
@@ -154,22 +202,23 @@ public class ItemSpawner : MonoBehaviour
         }
     }
 
-   private bool IsSpecialItem(GameObject item)
-{
-    string ballName = item.name.Replace("(Clone)", "").Trim().ToLower();
+    private bool IsSpecialItem(GameObject item)
+    {
+        string ballName = item.name.Replace("(Clone)", "").Trim().ToLower();
 
-    return ballName == "item 3"
-        || ballName == "item 4"
-        || ballName == "item 5"
-        || ballName == "item 6";
-}
+        return ballName == "item 3"
+            || ballName == "item 4"
+            || ballName == "item 5"
+            || ballName == "item 6"
+            || ballName == "item 7"; // กำหนดให้ item 7 เป็น Special Item (ตกลงมาแบบเฉียง)
+    }
 
     private GameObject GetRandomItemPrefab()
     {
         // ระบบสุ่มและน้ำหนักเดิมทั้งหมด
         int totalWeight =
             whiteChance + greenChance + redChance + pinkChance +
-            item3Chance + item4Chance + item5Chance + item6Chance;
+            item3Chance + item4Chance + item5Chance + item6Chance + item7Chance;
 
         if (totalWeight <= 0) return whiteBallPrefab;
 
@@ -202,6 +251,10 @@ public class ItemSpawner : MonoBehaviour
             return item5Prefab != null ? item5Prefab : whiteBallPrefab;
         randomValue -= item5Chance;
 
-        return item6Prefab != null ? item6Prefab : whiteBallPrefab;
+        if (randomValue < item6Chance)
+            return item6Prefab != null ? item6Prefab : whiteBallPrefab;
+        randomValue -= item6Chance;
+
+        return item7Prefab != null ? item7Prefab : whiteBallPrefab; // คืนค่า item 7
     }
 }

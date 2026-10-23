@@ -8,6 +8,12 @@ public class ItemCollector : MonoBehaviour
     public int count = 0;
     public int combo = 0;
 
+    [Header("Defeat Settings (ระบบแพ้)")]
+    public int maxMisses = 5;            // จำนวนครั้งที่พลาดได้
+    public int currentMisses = 0;        // จำนวนครั้งที่พลาดลูกบอลสีขาวไปแล้ว
+    public bool isGameOver = false;       // สถานะจบเกม
+    public GameObject defeatUI;          // (Optional) ลาก Defeat UI/Panel ใน Canvas มาใส่ตรงนี้
+
     [Header("Ball Tags")]
     public string whiteBallTag = "WhiteBall";
     public string pinkBallTag = "PinkBall";
@@ -19,6 +25,7 @@ public class ItemCollector : MonoBehaviour
     public string ohm = "ohm";   // Item 4 (+5 Combo)
     public string dew = "dew";   // Item 5 (+10 Combo)
     public string F = "F";       // Item 6 (-10 Combo)
+    public string Heart = "Heart"; // Item 7 (ลดค่า Missed 1)
 
     public float praiseDuration = 1.5f;
 
@@ -44,6 +51,8 @@ public class ItemCollector : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
+        if (isGameOver) return; // หากเกมจบแล้ว ไม่ต้องประมวลผลการเก็บไอเทมเพิ่ม
+
         int comboChange;
 
         // ดึงชื่อวัตถุ ตัด (Clone) และช่องว่างออก
@@ -75,6 +84,13 @@ public class ItemCollector : MonoBehaviour
         else if (lowerBallName == "item 6" || other.CompareTag(F))
         {
             comboChange = -10;
+        }
+        // 🔹 ปรับตรงนี้: ตรวจสอบทั้งชื่อ "item 7", "item7" และ Tag "Heart"
+        else if (lowerBallName == "item 7" ||(!string.IsNullOrEmpty(Heart) && other.CompareTag(Heart)))
+        {
+            // เมื่อเก็บ item 7 ให้ลดค่านับ Missed ลง 1
+            ReduceMissedCount();
+            comboChange = 0; // ไม่กระทบค่า Combo
         }
         else if (lowerBallName == "item")
         {
@@ -133,7 +149,7 @@ public class ItemCollector : MonoBehaviour
         return "";
     }
 
-    // บอลขาวตกหลุดจอ: รีเซ็ต Combo แต่ไม่ลด Items
+    // บอลขาวตกหลุดจอ: รีเซ็ต Combo และนับจำนวนครั้งที่พลาด
     public void ResetCombo()
     {
         combo = 0;
@@ -142,6 +158,40 @@ public class ItemCollector : MonoBehaviour
         {
             LevelManager.Instance.ResetLevel();
         }
+
+        // --- เพิ่มระบบนับเมื่อจับบอลขาวไม่ได้ ---
+        if (!isGameOver)
+        {
+            currentMisses++;
+            Debug.Log($"Missed White Ball: {currentMisses}/{maxMisses}");
+
+            if (currentMisses >= maxMisses)
+            {
+                TriggerDefeat();
+            }
+        }
+    }
+
+    // 🔹 ฟังก์ชันสำหรับลดค่านับ Missed ลง 1
+    public void ReduceMissedCount()
+    {
+        if (currentMisses > 0)
+        {
+            currentMisses--;
+            Debug.Log($"Heart Collected! Reduced Missed Count: {currentMisses}/{maxMisses}");
+        }
+    }
+
+    private void TriggerDefeat()
+    {
+        isGameOver = true;
+
+        if (defeatUI != null)
+        {
+            defeatUI.SetActive(true);
+        }
+
+        Debug.Log("Defeat! Game Over.");
     }
 
     // ==========================================
@@ -177,6 +227,27 @@ public class ItemCollector : MonoBehaviour
 
         GUI.Label(new Rect(20, 110, 400, 40),
             $"Level: {level}", smallStyle);
+
+        // แสดงจำนวนครั้งที่พลาด
+        GUI.Label(new Rect(20, 155, 400, 40),
+            $"Missed: {currentMisses}/{maxMisses}", smallStyle);
+
+        // หากแพ้ ให้แสดงคำว่า Defeat กลางจอ
+        if (isGameOver)
+        {
+            GUIStyle defeatStyle = new GUIStyle();
+            defeatStyle.fontSize = 72;
+            defeatStyle.alignment = TextAnchor.MiddleCenter;
+            defeatStyle.fontStyle = FontStyle.Bold;
+            defeatStyle.normal.textColor = Color.red;
+
+            GUI.Label(
+                new Rect(0, Screen.height * 0.4f, Screen.width, 100),
+                "Defeat",
+                defeatStyle
+            );
+            return;
+        }
 
         if (Time.time < praiseUntil)
         {

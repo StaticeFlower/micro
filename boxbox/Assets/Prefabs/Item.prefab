@@ -45,16 +45,28 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ItemSpawner
   whiteBallPrefab: {fileID: 0}
-  pinkBallPrefab: {fileID: 0}
   greenBallPrefab: {fileID: 0}
   redBallPrefab: {fileID: 0}
+  pinkBallPrefab: {fileID: 0}
+  item3Prefab: {fileID: 0}
+  item4Prefab: {fileID: 0}
+  item5Prefab: {fileID: 0}
+  item6Prefab: {fileID: 0}
   spawnInterval: 1.5
+  spawnY: 6
   xMin: -7
   xMax: 7
-  spawnY: 6
   destroyYBoundary: -6
-  level2SpawnInterval: 1
-  level3SpawnInterval: 0.7
+  maxMissedWhiteBalls: 5
+  defeatUI: {fileID: 0}
+  whiteChance: 50
+  greenChance: 25
+  redChance: 15
+  pinkChance: 10
+  item3Chance: 10
+  item4Chance: 5
+  item5Chance: 5
+  item6Chance: 5
 --- !u!1 &2321906449366662723
 GameObject:
   m_ObjectHideFlags: 0
@@ -285,10 +297,18 @@ MonoBehaviour:
   itemTag: Item
   count: 0
   combo: 0
+  maxMisses: 5
+  currentMisses: 0
+  isGameOver: 0
+  defeatUI: {fileID: 0}
   whiteBallTag: WhiteBall
   pinkBallTag: PinkBall
   greenBallTag: GreenBall
   redBallTag: RedBall
+  Tram: Tram
+  ohm: ohm
+  dew: dew
+  F: F
   praiseDuration: 1.5
 --- !u!114 &-3399305942740293832
 MonoBehaviour:
@@ -303,16 +323,28 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ItemSpawner
   whiteBallPrefab: {fileID: 0}
-  pinkBallPrefab: {fileID: 0}
   greenBallPrefab: {fileID: 0}
   redBallPrefab: {fileID: 0}
+  pinkBallPrefab: {fileID: 0}
+  item3Prefab: {fileID: 0}
+  item4Prefab: {fileID: 0}
+  item5Prefab: {fileID: 0}
+  item6Prefab: {fileID: 0}
   spawnInterval: 1.5
+  spawnY: 6
   xMin: -7
   xMax: 7
-  spawnY: 6
   destroyYBoundary: -6
-  level2SpawnInterval: 1
-  level3SpawnInterval: 0.7
+  maxMissedWhiteBalls: 5
+  defeatUI: {fileID: 0}
+  whiteChance: 50
+  greenChance: 25
+  redChance: 15
+  pinkChance: 10
+  item3Chance: 10
+  item4Chance: 5
+  item5Chance: 5
+  item6Chance: 5
 --- !u!114 &453284073385077821
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -328,10 +360,18 @@ MonoBehaviour:
   itemTag: Item
   count: 0
   combo: 0
+  maxMisses: 5
+  currentMisses: 0
+  isGameOver: 0
+  defeatUI: {fileID: 0}
   whiteBallTag: WhiteBall
   pinkBallTag: PinkBall
   greenBallTag: GreenBall
   redBallTag: RedBall
+  Tram: Tram
+  ohm: ohm
+  dew: dew
+  F: F
   praiseDuration: 1.5
 --- !u!114 &3016719449820125180
 MonoBehaviour:
@@ -346,16 +386,28 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ItemSpawner
   whiteBallPrefab: {fileID: 0}
-  pinkBallPrefab: {fileID: 0}
   greenBallPrefab: {fileID: 0}
   redBallPrefab: {fileID: 0}
+  pinkBallPrefab: {fileID: 0}
+  item3Prefab: {fileID: 0}
+  item4Prefab: {fileID: 0}
+  item5Prefab: {fileID: 0}
+  item6Prefab: {fileID: 0}
   spawnInterval: 1.5
+  spawnY: 6
   xMin: -7
   xMax: 7
-  spawnY: 6
   destroyYBoundary: -6
-  level2SpawnInterval: 1
-  level3SpawnInterval: 0.7
+  maxMissedWhiteBalls: 5
+  defeatUI: {fileID: 0}
+  whiteChance: 50
+  greenChance: 25
+  redChance: 15
+  pinkChance: 10
+  item3Chance: 10
+  item4Chance: 5
+  item5Chance: 5
+  item6Chance: 5
 --- !u!1 &2721751081291520191
 GameObject:
   m_ObjectHideFlags: 0
@@ -449,8 +501,16 @@ MonoBehaviour:
   itemTag: Item
   count: 0
   combo: 0
+  maxMisses: 5
+  currentMisses: 0
+  isGameOver: 0
+  defeatUI: {fileID: 0}
   whiteBallTag: WhiteBall
   pinkBallTag: PinkBall
   greenBallTag: GreenBall
   redBallTag: RedBall
+  Tram: Tram
+  ohm: ohm
+  dew: dew
+  F: F
   praiseDuration: 1.5
