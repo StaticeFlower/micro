@@ -1,9 +1,9 @@
+using System;
 using System.Collections.Concurrent;
 using UnityEngine;
 using WebSocketSharp;
-using WebSocketSharp.Server;
 
-[System.Serializable]
+[Serializable]
 public class SensorMsg
 {
     public string type;
@@ -12,72 +12,139 @@ public class SensorMsg
     public int R;
 }
 
-// ตัวรับ-ส่งข้อความของแต่ละ client (ทำงานบน thread อื่น ไม่ใช่ main thread)
-public class SensorBehavior : WebSocketBehavior
+// Unity เป็น Client เชื่อมไปที่ WebSocket Server ของ ESP32
+public class WsClient : MonoBehaviour
 {
-    public static ConcurrentQueue<string> Inbox = new ConcurrentQueue<string>();
+    [Header("ESP32 WebSocket Server")]
+    public string esp32Ip = "172.20.10.2";   // ใส่ IP ของ ESP32 (ดูจาก Serial Monitor)
+    public int port = 8080;                    // พอร์ตที่ ESP32 เปิดไว้
+    public string path = "/";                  // path ของ WS server บน ESP32 เช่น "/" หรือ "/ws"
 
-    protected override void OnOpen()
-    {
-        Debug.Log("ESP32 เชื่อมต่อแล้ว");
-    }
+    [Header("Reconnect")]
+    public bool autoReconnect = true;
+    public float reconnectDelay = 3f;          // วินาที
 
-    protected override void OnMessage(MessageEventArgs e)
-    {
-        Inbox.Enqueue(e.Data);
-    }
+    [Header("Movement")]
+    public float speed = 5f;
 
-    protected override void OnClose(CloseEventArgs e)
-    {
-        Debug.Log("ESP32 หลุด");
-    }
-}
+    WebSocket ws;
+    readonly ConcurrentQueue<string> inbox = new ConcurrentQueue<string>();
+    int curL = 1, curR = 1;                    // 1 = ไม่กด, 0 = กด
+    float lastAttempt = -999f;
+    volatile bool connecting = false;
 
-public class WsServer : MonoBehaviour
-{
-    public int port = 8080;          // ใหม่: พอร์ตที่รอรับการเชื่อมต่อจาก ESP32
-    public float speed = 5f;          // ใหม่: ความเร็วเดิน ปรับได้ใน Inspector
-
-    WebSocketServer wss;
-    int curL = 1, curR = 1;           // ใหม่: เก็บค่าล่าสุด (1 = ไม่กด, 0 = กด)
+    string Url => $"ws://{esp32Ip}:{port}{path}";
 
     void Start()
     {
-        wss = new WebSocketServer(port);
-        wss.AddWebSocketService<SensorBehavior>("/");
-        wss.Start();
-        Debug.Log($"WS server เปิดที่พอร์ต {port}");
+        Connect();
+    }
+
+    void Connect()
+    {
+        if (connecting) return;
+        connecting = true;
+        lastAttempt = Time.time;
+
+        // สร้างใหม่ทุกครั้งที่เชื่อมต่อ เพื่อเลี่ยงปัญหา state ค้างจากการเชื่อมต่อครั้งก่อน
+        DisposeSocket();
+
+        ws = new WebSocket(Url);
+        ws.WaitTime = TimeSpan.FromSeconds(5);
+
+        ws.OnOpen += (s, e) =>
+        {
+            connecting = false;
+            Debug.Log($"เชื่อมต่อ ESP32 สำเร็จ: {Url}");
+        };
+
+        // ทำงานบน thread อื่น → ใส่คิวไว้ให้ Update() (main thread) ประมวลผล
+        ws.OnMessage += (s, e) =>
+        {
+            if (e.IsText) inbox.Enqueue(e.Data);
+        };
+
+        ws.OnError += (s, e) =>
+        {
+            connecting = false;
+            Debug.LogWarning($"WS error: {e.Message}");
+        };
+
+        ws.OnClose += (s, e) =>
+        {
+            connecting = false;
+            Debug.Log($"หลุดจาก ESP32 (code {e.Code})");
+        };
+
+        Debug.Log($"กำลังเชื่อมต่อ {Url} ...");
+        ws.ConnectAsync();   // ไม่บล็อก main thread
     }
 
     void Update()
     {
-        while (SensorBehavior.Inbox.TryDequeue(out string msg))
+        // เชื่อมต่อใหม่อัตโนมัติถ้าหลุด
+        if (autoReconnect && !connecting &&
+            (ws == null || !ws.IsAlive) &&
+            Time.time - lastAttempt >= reconnectDelay)
         {
-            var data = JsonUtility.FromJson<SensorMsg>(msg);
+            Connect();
+        }
+
+        while (inbox.TryDequeue(out string msg))
+        {
+            SensorMsg data;
+            try
+            {
+                data = JsonUtility.FromJson<SensorMsg>(msg);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"JSON ผิดรูปแบบ: {msg} ({ex.Message})");
+                continue;
+            }
+            if (data == null) continue;
+
             if (data.type == "sensor")
             {
-                curL = data.L;        // ใหม่: เก็บค่าไว้
+                curL = data.L;
                 curR = data.R;
                 Debug.Log($"L={curL}, R={curR}");
             }
             else if (data.type == "register")
+            {
                 Debug.Log($"ลงทะเบียน MAC {data.mac}");
+            }
         }
 
-        // ใหม่: ขยับทุกเฟรมตามค่าที่เก็บไว้
+        // ขยับทุกเฟรมตามค่าล่าสุด
         float dir = 0;
         if (curL == 0) dir -= 1;
         if (curR == 0) dir += 1;
         transform.Translate(dir * speed * Time.deltaTime, 0, 0);
     }
 
-    public void Broadcast(string msg)
+    // ส่งข้อความไปหา ESP32
+    public void Send(string msg)
     {
-        wss?.WebSocketServices["/"].Sessions.Broadcast(msg);
+        if (ws != null && ws.IsAlive) ws.Send(msg);
+        else Debug.LogWarning("ยังไม่ได้เชื่อมต่อ ESP32");
+    }
+
+    void DisposeSocket()
+    {
+        if (ws == null) return;
+        try
+        {
+            if (ws.ReadyState == WebSocketState.Open) ws.Close();
+        }
+        catch { }
+        ws = null;
     }
 
     void OnDestroy()
     {
-        wss?.Stop();
+        autoReconnect = false;
+        DisposeSocket();
     }
 }
+
